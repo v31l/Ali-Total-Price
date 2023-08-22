@@ -2,7 +2,7 @@
 // @name         Ali Total Price
 // @author       AndShy
 // @description  Shows Total Price on Aliexpress
-// @version      2.14
+// @version      2.14.1
 // @license      GPL-3.0
 // @namespace    https://github.com/AndShy
 // @homepageURL  https://github.com/AndShy/Ali-Total-Price
@@ -46,7 +46,7 @@
                 if (currency.innerText.length == 3) {
                     currency = currency.innerText;
                     clearInterval(timer1);
-                    var listItems = document.querySelector('ul.list-items');
+                    var listItems = document.querySelector('#card-list');
                     if (listItems) {searchObserver.observe (listItems,searchObserverConf)};
                     LazyLoadOnSearch();
                 }
@@ -54,15 +54,13 @@
         },100)
     }
 
+  	var shippingElOld = strToCurrency(document.querySelector('div.dynamic-shipping-line > span > span > strong').innerText);
     function itemPageObserver() {
-        const itemObserverConf1 = {attributes: true, attributeFilter: ['value'], childList: false, subtree: false};
-        const itemObserverConf2 = {attributes: true, childList: false, subtree: true, characterData: true};
-        const itemObserverConf3 = {attributes: true, childList: true, subtree: true, characterData: true};
         var priceEl = document.querySelector('span.uniform-banner-box-price');
         if (!priceEl) priceEl = document.querySelector('div.product-price');
-        var quantInpEl = document.querySelector('span.next-input.next-medium.next-input-group-auto-width > input');
-        var shippingEl = document.querySelector('div.product-dynamic-shipping > div > div.dynamic-shipping');
-        var itemObserver = new MutationObserver(refreshItemValues);
+      	else priceEl = document.querySelector('div.product-price-current');
+        var quantInpEl = document.querySelector('div.comet-input-number > input');
+        var shippingEl = document.querySelector('div.dynamic-shipping-line > span > span > strong');
         var timer1 = setInterval(function() {
             currency = document.querySelector('#switcher-info > span.currency');
             if (currency) {
@@ -70,10 +68,9 @@
                     currency = currency.innerText;
                     clearInterval(timer1);
                     itemInsertHTML();
-                    if (quantInpEl) itemObserver.observe(quantInpEl, itemObserverConf1);
-                    if (priceEl) itemObserver.observe(priceEl, itemObserverConf2);
-                    if (shippingEl) itemObserver.observe(shippingEl, itemObserverConf3);
-                    refreshItemValues();
+										setInterval(function() {
+											refreshItemValues();
+                    },400);
                 }
             }
 
@@ -83,14 +80,14 @@
 
     function itemInsertHTML() {
         var lotEl = document.querySelector('div.product-price-current.lot');
-        var productInfo = document.querySelector('div.product-info');
+        var productInfo = document.querySelector('div.pdp-info-right');
         if (productInfo){
             var totPrice = document.createElement('div');
             totPrice.innerHTML =
             "<div class='bold' title='1 pcs/lot price = (base price * quantity + shipping cost)/quantity' style='font-size:14px; background-color:#f0f0f0'>" +
             "<span>One piece/lot price:&nbsp;&nbsp;</span><span id='pcs_prc' style='color:blue;'>---</span></div>" +
             "<div class='bold' style='font-size:24px'><span>Total Price:&nbsp;&nbsp;</span><span id='ttl_prc' style='color:red'>---</span></div>";
-            productInfo.insertBefore(totPrice, productInfo.querySelector('div.product-action'));
+            productInfo.insertBefore(totPrice, document.querySelectorAll("[class*=price--vat]")[0]);
             if (lotEl) {
                 var lot_html =
                 "<span class='bold' title='price for 1pcs from lot' style='font-size:14px; color:black'>&nbsp;&nbsp;&nbsp;1pcs:&nbsp;" +
@@ -109,9 +106,9 @@
         var myTtlPrcEl = document.getElementById('ttl_prc');
         var myLotPcsPrcEl = document.getElementById('lot_pcs_prc');
         var lotEl = document.querySelector('span.product-price-piece');
-        var shCostEl = document.querySelector("div.product-dynamic-shipping > div > div > div > span > span > strong")
-        var quantInpEl = document.querySelector('span.next-input.next-medium.next-input-group-auto-width > input');
-        var itemPriceEl = document.querySelector('div.product-price-current > span.product-price-value');
+        var shCostEl = document.querySelector("div.dynamic-shipping-line > span > span > strong")
+        var quantInpEl = document.querySelector('input.comet-input-number-input');
+        var itemPriceEl = document.querySelector('div.product-price-current > div');
 
         if (!itemPriceEl) {
             itemPriceEl = document.querySelector('div > span.oyuLA');
@@ -151,14 +148,17 @@
     }
 
     function LazyLoadOnSearch() {
-        var prodList = document.querySelectorAll('div.product-info > div.hover-help > div.item-shipping-wrap');
-        var prodGallery = document.querySelectorAll('div.right-zone > div.item-shipping-wrap');
+        var prodList = document.querySelectorAll('[class*=list--list] > a');
+        var prodGallery = document.querySelectorAll('[class*=list--gallery] > a');
+				
+      	//List View
         for (var i = 0, max_i = prodList.length; i < max_i; i++) {
             if (prodList[i].dataset.edited != 'True') {
                 var packagingEl;
                 var ttlPriceList = document.createElement('div');
                 ttlPriceList.style = 'padding-bottom: 5px';
-                prodList[i].parentNode.insertBefore(ttlPriceList, prodList[i].nextElementSibling);
+              	var storeName = prodList[i].querySelectorAll('[class*=cards--store]')[0];
+                storeName.parentNode.insertBefore(ttlPriceList, storeName);
                 ttlPriceList.innerHTML =
                 "<span class='item-shipping-wrap' style='font-size:12px; font-weight:bold'>Total Price:&nbsp;&nbsp;</span>" +
                 "<span class='item-shipping-wrap' style='font-size:12px; color:red; font-weight:bold'>" + SearchPageTotalPrice(ttlPriceList) + "</span>";
@@ -170,24 +170,25 @@
                 prodList[i].dataset.edited = 'True';
             }
         }
+      	//Gallery View
         for (var j = 0, max_j = prodGallery.length; j < max_j; j++) {
             if (prodGallery[j].dataset.edited != 'True') {
                 var ttlPriceGallery = document.createElement('div');
                 ttlPriceGallery.style = 'padding-bottom: 5px';
-                prodGallery[j].parentNode.insertBefore(ttlPriceGallery, prodGallery[j].nextElementSibling);
+              	var storeName = prodGallery[j].querySelectorAll('[class*=cards--store]')[0];
+                storeName.parentNode.insertBefore(ttlPriceGallery, storeName);
                 ttlPriceGallery.innerHTML =
                 "<span class='item-shipping-wrap' style='font-size:12px; font-weight:bold'>Total Price:&nbsp;&nbsp;</span>" +
                 "<span class='item-shipping-wrap' style='font-size:12px; color:red; font-weight:bold'>" + SearchPageTotalPrice(ttlPriceGallery) + "</span>";
-
                 prodGallery[j].dataset.edited = 'True';
             }
         }
     }
 
     function SearchPageTotalPrice (myEl) {
-        if (myEl.parentNode.querySelector('span.price-current') && myEl.parentNode.querySelector('span.shipping-value')){
-            var itemPriceEl = myEl.parentNode.querySelector('div.item-price-wrap > div > span.price-current');
-            var shCostEl = myEl.parentNode.querySelector('div.item-shipping-wrap > span.shipping-value');
+        if (myEl.parentNode.querySelector('[class*=manhattan--price]') && myEl.parentNode.querySelector('[class*=manhattan--topList]')){
+            var itemPriceEl = myEl.parentNode.querySelector('[class*=manhattan--price-sale]');
+            var shCostEl = myEl.parentNode.querySelector('[class*=manhattan--topList] > div > span');
             var itemPriceValue = [], shCostValue;
             shCostValue = strToCurrency(shCostEl.innerText);
             if (itemPriceEl.innerText.includes(' - ')) {
